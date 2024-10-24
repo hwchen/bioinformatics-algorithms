@@ -10,4 +10,4 @@
 
 # using compile-run prints a bunch of logs
 run problem *args="":
-    just build {{problem}} -O3 && time ./{{problem}} {{args}} && rm ./{{problem}}
+    just build {{problem}} -O5 && time -pq ./{{problem}} {{args}} && rm ./{{problem}}
