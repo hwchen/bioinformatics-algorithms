@@ -43,6 +43,5 @@ fn String[] frequent_words(String text, int k, Allocator alloc= allocator::heap(
 }
 
 fn void test_frequent_words() @test {
-	io::printfn("%s", frequent_words("ACGTTGCATGTCGCATGATGCATGAGAGCT", 4));
 	assert(frequent_words("ACGTTGCATGTCGCATGATGCATGAGAGCT", 4) == {"CATG", "GCAT"});
 }
