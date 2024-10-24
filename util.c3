@@ -9,7 +9,7 @@ fn FrequencyTable frequency_table(String text, int k, Allocator alloc = allocato
 	kmer_counts.new_init(allocator: alloc);
 	for (int i = 0; i <= text.len - k; i += 1) {
 		// TODO get_or_update? Annoying to get twice
-		kmer_counts.@get_or_set(text[i:k].copy(alloc), 0);
+		kmer_counts.@get_or_set(text[i:k], 0); // don't need to clone, keys copied into table
 		if (try int* count = kmer_counts.get_ref(text[i:k])) {
 			*count += 1;
 		}
@@ -30,14 +30,16 @@ fn String[] clump_finding(
 		HashMap(<String, char>) clumps; // a set
 		clumps.temp_init();
 		for (int i = 0; i <= genome.len - region_len; i += 1) {
-			FrequencyTable freq_map = frequency_table(genome[i:region_len], k);
-			freq_map.@each(; String kmer, int count) {
-				if (count >= clump_threshold) {
-					// TODO can probably just use a growable array on small inputs
-					// Also, careful: hashmap copies keys! Here that means keys copied
-					// to temp allocator.
-					clumps.set(kmer, 0);
-				}
+			@pool() {
+				FrequencyTable freq_map = frequency_table(genome[i:region_len], k, allocator::temp());
+				freq_map.@each(; String kmer, int count) {
+					if (count >= clump_threshold) {
+						// TODO can probably just use a growable array on small inputs
+						// Also, careful: hashmap copies keys! Here that means keys copied
+						// to temp allocator.
+						clumps.set(kmer, 0);
+					}
+				};
 			};
 		}
 		return clumps.copy_keys(alloc);
