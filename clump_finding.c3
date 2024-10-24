@@ -17,7 +17,11 @@ fn void! main(String[] args) {
 		io::eprintn("Please supply path, k, L, t to data file");
 		return IoError.FILE_NOT_FOUND?;
 	}
-	File f = file::open(args[1], "rb")!;
+	File! f = file::open(args[1], "rb");
+	if (catch err = f) {
+		io::eprintn("Missing data file");
+		return IoError.FILE_NOT_FOUND?;
+	}
 	defer (void)f.close();
 	String genome = (String)io::read_new_fully(&f)!;
 	int k = args[2].to_integer(int)!;
