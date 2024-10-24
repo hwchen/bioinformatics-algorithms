@@ -1,5 +1,5 @@
 @check:
-    \fd --glob '*.c3' -x c3c compile -C
+    \fd --glob '*.c3' -x c3c compile -C util.c3
 
 @test:
     c3c compile-test .
