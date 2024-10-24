@@ -4,7 +4,7 @@ import std::io;
 import std::io::file;
 import std::collections;
 
-def KmerCounts = HashMap(<String, int>);
+import util;
 
 fn void! main(String[] args) {
 	if (args.len != 2) {
@@ -23,26 +23,19 @@ fn void! main(String[] args) {
 
 fn String[] frequent_words(String text, int k, Allocator alloc= allocator::heap()) {
 	@pool() {
-		KmerCounts kmer_counts;
-		for (int i = 0; i <= text.len - k; i += 1) {
-			// TODO get_or_update? Annoying to get twice
-			kmer_counts.@get_or_set(text[i:k], 0);
-			if (try int* count = kmer_counts.get_ref(text[i:k])) {
-				*count += 1;
-			}
-		}
+		FrequencyTable freq_map = util::frequency_table(text, k, allocator::temp());
 
-		int[] counts = kmer_counts.value_tlist();
+		int[] counts = freq_map.value_tlist();
 		int max = 0;
-		foreach (count: counts) {
+		freq_map.@each(; String _k, int count) {
 			if (count > max) max = count;
-		}
+		};
 
 		List(<String>) res;
 		res.temp_init();
-		kmer_counts.@each(; String key, int v) {
+		freq_map.@each(; String key, int v) {
 			if (v == max) {
-				res.push(key);
+				res.push(key.copy(alloc));
 			}
 		};
 		return res.to_new_array(alloc);
@@ -50,5 +43,6 @@ fn String[] frequent_words(String text, int k, Allocator alloc= allocator::heap(
 }
 
 fn void test_frequent_words() @test {
+	io::printfn("%s", frequent_words("ACGTTGCATGTCGCATGATGCATGAGAGCT", 4));
 	assert(frequent_words("ACGTTGCATGTCGCATGATGCATGAGAGCT", 4) == {"CATG", "GCAT"});
 }
