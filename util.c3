@@ -30,7 +30,7 @@ fn String[] clump_finding(
 		HashMap(<String, char>) clumps; // a set
 		clumps.temp_init();
 		for (int i = 0; i <= genome.len - region_len; i += 1) {
-			@pool() {
+			@pool(allocator::temp()) {
 				FrequencyTable freq_map = frequency_table(genome[i:region_len], k, allocator::temp());
 				freq_map.@each(; String kmer, int count) {
 					if (count >= clump_threshold) {
