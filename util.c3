@@ -50,3 +50,18 @@ fn void test_clump_finding() @test {
     String input = "CGGACTCGACAGATGTGAAGAACGACAATGTGAAGACTCGACACGACAGAGTGAAGAGAAGAGGAAACATTGTAA";
 	assert(clump_finding(input, 5, 50, 4) == {"CGACA", "GAAGA"});
 }
+
+fn int hamming_distance(String s1, String s2) {
+	assert(s1.len == s2.len);
+	int count = 0;
+	for (int i = 0; i < s1.len; i += 1) {
+		if (s1[i] != s2[i]) {
+			count += 1;
+		}
+	}
+	return count;
+}
+
+fn void test_hamming_distance() @test {
+	assert(hamming_distance("GGGCCGTTGGT", "GGACCGTTGAC") == 3);
+}
