@@ -65,3 +65,59 @@ fn int hamming_distance(String s1, String s2) {
 fn void test_hamming_distance() @test {
 	assert(hamming_distance("GGGCCGTTGGT", "GGACCGTTGAC") == 3);
 }
+
+// d is the hamming_distance maximum threshold
+fn int[] approximate_pattern_matching(
+	String pattern,
+	String genome,
+	int d,
+	Allocator alloc = allocator::heap())
+{
+	if (pattern.len == 0 || genome.len == 0) return {};
+	List(<int>) res;
+	@pool() {
+		res.temp_init();
+		for (int i = 0; i <= genome.len - pattern.len; i += 1) {
+			// TODO more efficient to break early when calculating hamming distance
+			if (util::hamming_distance(genome[i:pattern.len], pattern) <= d) {
+				res.push(i);
+			}
+		}
+		return res.to_new_array(alloc);
+	};
+}
+
+struct ApproxMatchTest {
+	String pattern;
+	String genome;
+	int d;
+	int[] expected;
+}
+fn void test_approximate_pattern_matching() @test {
+	ApproxMatchTest[] tests = {
+		{
+			.pattern = "ATA",
+			.genome = "CGATCGAGTACCATAAG",
+			.d = 1,
+			.expected = {2, 7, 12},
+		},
+		{
+			.pattern = "ATTCTGGA",
+			.genome = "CGCCCGAATCCAGAACGCATTCCCATATTTCGGGACCACTGGCCTCCACGGTACGGACGTCAATCAAAT",
+			.d = 3,
+			.expected = {6, 7, 26, 27},
+		},
+		{
+			.pattern = "AAA",
+			.genome = "TTTTTTAAATTTTAAATTTTTT",
+			.d = 2,
+			.expected = {4, 5, 6, 7, 8, 11, 12, 13, 14, 15},
+		},
+	};
+	foreach (t : tests) {
+		int[] matches = approximate_pattern_matching(t.pattern, t.genome, t.d);
+		assert(matches == t.expected, "Expected %s, found %s", t.expected, matches);
+	}
+}
+
+
