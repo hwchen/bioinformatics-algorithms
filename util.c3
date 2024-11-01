@@ -7,6 +7,25 @@ import std::sort;
 
 import test;
 
+fn String reverse_complement(String pattern, Allocator alloc = allocator::heap()) {
+	char[] s = allocator::alloc_array(alloc, char, pattern.len);
+	foreach (i, c : pattern) {
+		ulong idx = s.len - i - 1;
+		switch (c) {
+			case 'A': s[idx] = 'T';
+			case 'C': s[idx] = 'G';
+			case 'T': s[idx] = 'A';
+			case 'G': s[idx] = 'C';
+			default: $$unreachable();
+		}
+	}
+	return (String)s;
+}
+
+fn void test_reverse_complement() @test {
+	assert(reverse_complement("AAAACCCGGT") == "ACCGGGTTTT");
+}
+
 def FrequencyTable = HashMap(<String, int>);
 
 // counts of kmers in a text.
@@ -128,8 +147,17 @@ fn void test_approximate_pattern_matching() @test {
 
 // Just like frequent words, except instead of matching just each kmer,
 // we create a neighbohood(d) for each kmer and that neighborhood is compared against the text
-fn String[] frequent_words_with_mismatches(String text, int k, int d, Allocator alloc= allocator::heap()) {
+fn String[] _frequent_words_with_mismatches(
+	String text,
+	int k,
+	int d,
+	bool with_rc,
+	Allocator alloc= allocator::heap())
+{
 	@pool() {
+		if (with_rc) {
+			text = text.concat(reverse_complement(text, allocator::temp()), allocator::temp());
+		}
 		FrequencyTable freq_map;
 		freq_map.new_init(allocator: alloc);
 		for (int i = 0; i <= text.len - k; i += 1) {
@@ -158,6 +186,13 @@ fn String[] frequent_words_with_mismatches(String text, int k, int d, Allocator 
 		};
 		return res.to_new_array(alloc);
 	};
+}
+
+fn String[] frequent_words_with_mismatches(String text, int k, int d, Allocator alloc= allocator::heap()) {
+	return _frequent_words_with_mismatches(text, k, d, false, alloc);
+}
+fn String[] frequent_words_with_mismatches_and_rc(String text, int k, int d, Allocator alloc= allocator::heap()) {
+	return _frequent_words_with_mismatches(text, k, d, true, alloc);
 }
 
 struct FreqWordsMismatchesTest {
@@ -195,6 +230,20 @@ fn void test_frequent_words_with_mismatches() @test {
 	};
 	foreach (t : tests) {
 		String[] matches = frequent_words_with_mismatches(t.text, t.k, t.d);
+		test::expect_equal_slices_sorted(t.expected, matches);
+	}
+}
+fn void test_frequent_words_with_mismatches_and_rc() @test {
+	FreqWordsMismatchesTest[] tests = {
+		{
+			.text = "ACGTTGCATGTCGCATGATGCATGAGAGCT",
+			.k = 4,
+			.d = 1,
+			.expected = {"ATGT", "ACAT"},
+		},
+	};
+	foreach (t : tests) {
+		String[] matches = frequent_words_with_mismatches_and_rc(t.text, t.k, t.d);
 		test::expect_equal_slices_sorted(t.expected, matches);
 	}
 }
@@ -304,5 +353,3 @@ fn void test_neighbors() @test {
 		test::expect_equal_slices_sorted(t.expected, matches);
 	}
 }
-
-
