@@ -14,7 +14,7 @@ run problem *args="":
 
 bench problem *args="":
     just build {{problem}} -O5 && \
-    poop "./{{problem}}"
+    poop "./{{problem}} {{args}}"
 
 # can inspect results with `perf report`
 # sudo sysctl kernel.perf_event_paranoid=1
