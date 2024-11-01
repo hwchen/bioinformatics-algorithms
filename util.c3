@@ -209,8 +209,8 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 	if (pattern.len == 0) return {};
 	DynamicArenaAllocator neighborhood_arena;
 	DynamicArenaAllocator suffix_neighborhood_arena;
-	neighborhood_arena.init(4096, allocator::temp());
-	suffix_neighborhood_arena.init(4096, allocator::temp());
+	neighborhood_arena.init(1024, allocator::temp());
+	suffix_neighborhood_arena.init(1024, allocator::temp());
 	List(<String>) neighborhood;
 	List(<String>) suffix_neighborhood;
 	neighborhood.new_init_with_array({"A", "C", "G", "T"}, &neighborhood_arena);
