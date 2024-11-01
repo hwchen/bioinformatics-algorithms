@@ -4,6 +4,8 @@ import std::core::string;
 import std::io;
 import std::sort;
 
+import test;
+
 def FrequencyTable = HashMap(<String, int>);
 
 // counts of kmers in a text.
@@ -192,14 +194,7 @@ fn void test_frequent_words_with_mismatches() @test {
 	};
 	foreach (t : tests) {
 		String[] matches = frequent_words_with_mismatches(t.text, t.k, t.d);
-		assert(matches.len == t.expected.len, "Expected %s, found %s", t.expected, matches);
-		bool found = false;
-		foreach (match : matches) {
-			foreach (exp : t.expected) {
-				found = true;
-			}
-		}
-		assert(found, "Expected %s, found %s", t.expected, matches);
+		test::expect_equal_slices_sorted(t.expected, matches);
 	}
 }
 
@@ -288,13 +283,8 @@ fn void test_neighbors() @test {
 	};
 	foreach (t : tests) {
 		String[] matches = neighbors(t.text, t.d);
-		assert(matches.len == t.expected.len, "Expected %s, found %s", t.expected, matches);
-		bool found = false;
-		foreach (match : matches) {
-			foreach (exp : t.expected) {
-				found = true;
-			}
-		}
-		assert(found, "Expected %s, found %s", t.expected, matches);
+		test::expect_equal_slices_sorted(t.expected, matches);
 	}
 }
+
+
