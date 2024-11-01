@@ -1,5 +1,6 @@
 module util;
 import std::collections;
+import std::core::mem;
 import std::core::string;
 import std::io;
 import std::sort;
@@ -206,10 +207,14 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 {
 	if (d == 0) return {pattern};
 	if (pattern.len == 0) return {};
+	DynamicArenaAllocator neighborhood_arena;
+	DynamicArenaAllocator suffix_neighborhood_arena;
+	neighborhood_arena.init(4096, allocator::temp());
+	suffix_neighborhood_arena.init(4096, allocator::temp());
 	List(<String>) neighborhood;
-	neighborhood.temp_init_with_array({"A", "C", "G", "T"});
 	List(<String>) suffix_neighborhood;
-	suffix_neighborhood.temp_init();
+	neighborhood.new_init_with_array({"A", "C", "G", "T"}, &neighborhood_arena);
+	suffix_neighborhood.new_init(16, &suffix_neighborhood_arena);
 	for (int i = 1; i < pattern.len; i += 1) {
 		// swap suffix_neighborhood and neighborhood. The previous
 		// neighborhood becomes the new suffix_neighborhood to iterate
@@ -219,11 +224,24 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 		// been moved into the old neighborhood/new suffix_neighborhood as
 		// calculated during the last iteration. (otherwise we have to keep
 		// allocating new memory to collect the next neighborhood into).
+		//
+		// The memory itself is cleared for reuse by the arena holding the
+		// List (see next swap)
 		List(<String>) swap_var;
 		swap_var = suffix_neighborhood;
 		suffix_neighborhood = neighborhood;
 		neighborhood = swap_var;
-		neighborhood.clear();
+
+		// Same swap with the arenas
+		// Old strings and the List holding them all get cleared
+		DynamicArenaAllocator swap_arena;
+		swap_arena = suffix_neighborhood_arena;
+		suffix_neighborhood_arena = neighborhood_arena;
+		neighborhood_arena = swap_arena;
+
+		// clear out the old neighborhood for use in next iteration
+		neighborhood_arena.free();
+		neighborhood.new_init(suffix_neighborhood.len(), &neighborhood_arena);
 
 		int suffix_idx = pattern.len - i;
 		String suffix = pattern[suffix_idx..];
@@ -232,20 +250,20 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 			//io::printfn("%s, %s, %s, %s", suffix, suffix_neighbor, suffix_neighborhood, neighborhood);
 			if (hamming_distance(suffix, suffix_neighbor) < d) {
 				// adding the additional base will be at most hamming dist == d,
-				// TODO we can reuse the memory of neighborhoods by swapping, can we
-				// do something about all the new strings?
-				neighborhood.push("A".tconcat(suffix_neighbor));
-				neighborhood.push("C".tconcat(suffix_neighbor));
-				neighborhood.push("G".tconcat(suffix_neighbor));
-				neighborhood.push("T".tconcat(suffix_neighbor));
+				neighborhood.push("A".concat(suffix_neighbor, &suffix_neighborhood_arena));
+				neighborhood.push("C".concat(suffix_neighbor, &suffix_neighborhood_arena));
+				neighborhood.push("G".concat(suffix_neighbor, &suffix_neighborhood_arena));
+				neighborhood.push("T".concat(suffix_neighbor, &suffix_neighborhood_arena));
 			} else {
 				// hamming distance == d. It can't be more, because the neighbors are
 				// generated up to hamming distance d. Adding the first symbol from the
 				// original pattern cannot increase the hamming distance.
-				neighborhood.push(pattern[suffix_idx - 1:1].tconcat(suffix_neighbor));
+				neighborhood.push(pattern[suffix_idx - 1:1].concat(suffix_neighbor, &suffix_neighborhood_arena));
 			}
 		}
 	}
+
+	// Copy strings out to final result's allocator
 	String[] res = allocator::new_array(alloc, String, neighborhood.len());
 	foreach (i, neighbor : neighborhood) {
 		res[i] = neighbor.copy(alloc);
