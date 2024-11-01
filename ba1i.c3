@@ -1,4 +1,4 @@
-// approximate pattern count
+// Frequent words with mismatches
 
 module ba1i;
 import std::io;
@@ -13,10 +13,14 @@ fn void! main(String[] args) {
 		return IoError.FILE_NOT_FOUND?;
 	}
 	File f = file::open(args[1], "rb")!;
-	String pattern = io::treadline(&f)!;
 	String genome = io::treadline(&f)!;
-	String d_str = io::treadline(&f)!;
-	int d = d_str.to_integer(int)!;
-	int[] matches = util::approximate_pattern_matching(pattern, genome, d);
-	io::printfn("%d", matches.len);
+	String ints = io::treadline(&f)!;
+	String[] ints_split = ints.tsplit(" ");
+	int k = ints_split[0].to_integer(int)!;
+	int d = ints_split[1].to_integer(int)!;
+	String[] matches = util::frequent_words_with_mismatches(genome, k, d);
+	foreach (match : matches) {
+		io::printf("%s ", match);
+	}
 }
+

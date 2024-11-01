@@ -1,6 +1,6 @@
-// Frequent words with mismatches
+// Neighbors
 
-module ba1j;
+module ba1n;
 import std::io;
 import std::io::file;
 import std::collections;
@@ -13,14 +13,12 @@ fn void! main(String[] args) {
 		return IoError.FILE_NOT_FOUND?;
 	}
 	File f = file::open(args[1], "rb")!;
-	String genome = io::treadline(&f)!;
-	String ints = io::treadline(&f)!;
-	String[] ints_split = ints.tsplit(" ");
-	int k = ints_split[0].to_integer(int)!;
-	int d = ints_split[1].to_integer(int)!;
-	String[] matches = util::frequent_words_with_mismatches(genome, k, d);
+	String pattern = io::treadline(&f)!;
+	int d = io::treadline(&f)!.to_integer(int)!;
+	String[] matches = util::neighbors(pattern, d);
 	foreach (match : matches) {
 		io::printf("%s ", match);
 	}
 }
+
 

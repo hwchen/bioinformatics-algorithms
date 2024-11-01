@@ -1,6 +1,6 @@
-// Neighbors
+// approximate pattern count
 
-module ba1l;
+module approximate_pattern_count;
 import std::io;
 import std::io::file;
 import std::collections;
@@ -14,11 +14,9 @@ fn void! main(String[] args) {
 	}
 	File f = file::open(args[1], "rb")!;
 	String pattern = io::treadline(&f)!;
-	int d = io::treadline(&f)!.to_integer(int)!;
-	String[] matches = util::neighbors(pattern, d);
-	foreach (match : matches) {
-		io::printf("%s ", match);
-	}
+	String genome = io::treadline(&f)!;
+	String d_str = io::treadline(&f)!;
+	int d = d_str.to_integer(int)!;
+	int[] matches = util::approximate_pattern_matching(pattern, genome, d);
+	io::printfn("%d", matches.len);
 }
-
-
