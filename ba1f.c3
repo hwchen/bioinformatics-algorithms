@@ -7,25 +7,26 @@ import std::collections;
 
 import util;
 
-def IntList = List(<ulong>);
+alias IntList = List{ulong};
 
-fn void! main(String[] args) {
+fn int main(String[] args) {
 	if (args.len != 2) {
 		io::eprintn("Please supply path to data file");
-		return IoError.FILE_NOT_FOUND?;
+		return 1;
 	}
-	File f = file::open(args[1], "rb")!;
-	String genome = io::treadline(&f)!;
+	File f = file::open(args[1], "rb")!!;
+	String genome = io::treadline(&f)!!;
 	ulong[] min_skew_idxs = minimum_skew_idxs(genome);
 	foreach (i : min_skew_idxs) {
 		io::printf("%d ", i);
 	}
+	return 0;
 }
 
 // TODO use min heap
 fn ulong[] minimum_skew_idxs(String genome, Allocator alloc = allocator::heap()) {
 	IntList idxs;
-	idxs.temp_init();
+	idxs.tinit();
 	int min_skew = 0;
 	int skew = 0;
 	foreach (i, base : genome) {
@@ -45,9 +46,9 @@ fn ulong[] minimum_skew_idxs(String genome, Allocator alloc = allocator::heap())
 				idxs.push(skew_idx);
 		}
 	}
-	return idxs.to_new_array(alloc);
+	return idxs.to_array(alloc);
 }
 
 fn void test_minimum_skew_idxs() @test {
-	assert(minimum_skew_idxs("TAAAGACTGCCGAGAGGCCAACACGAGTGCTAGAACGAGGGGCGTAAACGCGGGTCCGAT") == {11, 24});
+	assert(minimum_skew_idxs("TAAAGACTGCCGAGAGGCCAACACGAGTGCTAGAACGAGGGGCGTAAACGCGGGTCCGAT", tmem()) == {11, 24});
 }

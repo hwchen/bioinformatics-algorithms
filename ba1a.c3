@@ -4,15 +4,16 @@ import std::io;
 import std::io::file;
 import std::collections;
 
-fn void! main(String[] args) {
+fn int main(String[] args) {
 	if (args.len != 2) {
 		io::eprintn("Please supply path to data file");
-		return IoError.FILE_NOT_FOUND?;
+		return 1;
 	}
-	File f = file::open(args[1], "rb")!;
-	String text = io::treadline(&f)!;
-	String pattern = io::treadline(&f)!;
+	File f = file::open(args[1], "rb")!!;
+	String text = io::treadline(&f)!!;
+	String pattern = io::treadline(&f)!!;
 	io::printn(pattern_count(text, pattern));
+	return 0;
 }
 
 fn int pattern_count(String text, String pattern) {

@@ -26,12 +26,12 @@ fn void test_reverse_complement() @test {
 	assert(reverse_complement("AAAACCCGGT") == "ACCGGGTTTT");
 }
 
-def FrequencyTable = HashMap(<String, int>);
+alias FrequencyTable = HashMap{String, int};
 
 // counts of kmers in a text.
 fn FrequencyTable frequency_table(String text, int k, Allocator alloc = allocator::heap()) {
 	FrequencyTable kmer_counts;
-	kmer_counts.new_init(allocator: alloc);
+	kmer_counts.init(allocator: alloc);
 	for (int i = 0; i <= text.len - k; i += 1) {
 		// TODO get_or_update? Annoying to get twice
 		kmer_counts.@get_or_set(text[i:k], 0); // don't need to clone, keys copied into table
@@ -51,11 +51,11 @@ fn String[] clump_finding(
 {
 	if (k == 0 || genome.len == 0) return {};
 	String[] res;
-	@pool() {
-		HashMap(<String, char>) clumps; // a set
-		clumps.temp_init();
+	@pool(alloc) {
+		HashMap{String, char} clumps; // a set
+		clumps.tinit();
 		for (int i = 0; i <= genome.len - region_len; i += 1) {
-			@pool(allocator::temp()) {
+			@pool(alloc) {
 				FrequencyTable freq_map = frequency_table(genome[i:region_len], k, allocator::temp());
 				freq_map.@each(; String kmer, int count) {
 					if (count >= clump_threshold) {
@@ -67,7 +67,7 @@ fn String[] clump_finding(
 				};
 			};
 		}
-		return clumps.copy_keys(alloc);
+		return clumps.keys(alloc);
 	};
 }
 
@@ -99,16 +99,16 @@ fn int[] approximate_pattern_matching(
 	Allocator alloc = allocator::heap())
 {
 	if (pattern.len == 0 || genome.len == 0) return {};
-	List(<int>) res;
-	@pool() {
-		res.temp_init();
+	List{int} res;
+	@pool(alloc) {
+		res.tinit();
 		for (int i = 0; i <= genome.len - pattern.len; i += 1) {
 			// TODO more efficient to break early when calculating hamming distance
 			if (util::hamming_distance(genome[i:pattern.len], pattern) <= d) {
 				res.push(i);
 			}
 		}
-		return res.to_new_array(alloc);
+		return res.to_array(alloc);
 	};
 }
 
@@ -140,7 +140,7 @@ fn void test_approximate_pattern_matching() @test {
 		},
 	};
 	foreach (t : tests) {
-		int[] matches = approximate_pattern_matching(t.pattern, t.genome, t.d);
+		int[] matches = approximate_pattern_matching(t.pattern, t.genome, t.d, tmem());
 		assert(matches == t.expected, "Expected %s, found %s", t.expected, matches);
 	}
 }
@@ -154,12 +154,12 @@ fn String[] _frequent_words_with_mismatches(
 	bool with_rc,
 	Allocator alloc= allocator::heap())
 {
-	@pool() {
+	@pool(alloc) {
 		if (with_rc) {
-			text = text.concat(reverse_complement(text, allocator::temp()), allocator::temp());
+			text = text.tconcat(reverse_complement(text, allocator::temp()));
 		}
 		FrequencyTable freq_map;
-		freq_map.new_init(allocator: alloc);
+		freq_map.init(allocator: alloc);
 		for (int i = 0; i <= text.len - k; i += 1) {
 			String pattern = text[i:k];
 			String[] neighborhood = neighbors(pattern, d, allocator::temp());
@@ -171,20 +171,20 @@ fn String[] _frequent_words_with_mismatches(
 			}
 		}
 
-		int[] counts = freq_map.value_tlist();
+		int[] counts = freq_map.tvalues();
 		int max = 0;
 		freq_map.@each(; String _k, int count) {
 			if (count > max) max = count;
 		};
 
-		List(<String>) res;
-		res.temp_init();
+		List{String} res;
+		res.tinit();
 		freq_map.@each(; String key, int v) {
 			if (v == max) {
 				res.push(key.copy(alloc));
 			}
 		};
-		return res.to_new_array(alloc);
+		return res.to_array(alloc);
 	};
 }
 
@@ -261,10 +261,10 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 		DynamicArenaAllocator suffix_neighborhood_arena;
 		neighborhood_arena.init(1024, allocator::temp());
 		suffix_neighborhood_arena.init(1024, allocator::temp());
-		List(<String>) neighborhood;
-		List(<String>) suffix_neighborhood;
-		neighborhood.new_init_with_array({"A", "C", "G", "T"}, &neighborhood_arena);
-		suffix_neighborhood.new_init(16, &suffix_neighborhood_arena);
+		List{String} neighborhood;
+		List{String} suffix_neighborhood;
+		neighborhood.init_with_array(&neighborhood_arena, {"A", "C", "G", "T"});
+		suffix_neighborhood.init(&suffix_neighborhood_arena, 16);
 		for (int i = 1; i < pattern.len; i += 1) {
 			// swap suffix_neighborhood and neighborhood. The previous
 			// neighborhood becomes the new suffix_neighborhood to iterate
@@ -277,7 +277,7 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 			//
 			// The memory itself is cleared for reuse by the arena holding the
 			// List (see next swap)
-			List(<String>) swap_var;
+			List{String} swap_var;
 			swap_var = suffix_neighborhood;
 			suffix_neighborhood = neighborhood;
 			neighborhood = swap_var;
@@ -291,7 +291,7 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 
 			// clear out the old neighborhood for use in next iteration
 			neighborhood_arena.free();
-			neighborhood.new_init(suffix_neighborhood.len(), &neighborhood_arena);
+			neighborhood.init(&neighborhood_arena, suffix_neighborhood.len(),);
 
 			int suffix_idx = pattern.len - i;
 			String suffix = pattern[suffix_idx..];
@@ -300,15 +300,15 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 				//io::printfn("%s, %s, %s, %s", suffix, suffix_neighbor, suffix_neighborhood, neighborhood);
 				if (hamming_distance(suffix, suffix_neighbor) < d) {
 					// adding the additional base will be at most hamming dist == d,
-					neighborhood.push("A".concat(suffix_neighbor, &suffix_neighborhood_arena));
-					neighborhood.push("C".concat(suffix_neighbor, &suffix_neighborhood_arena));
-					neighborhood.push("G".concat(suffix_neighbor, &suffix_neighborhood_arena));
-					neighborhood.push("T".concat(suffix_neighbor, &suffix_neighborhood_arena));
+					neighborhood.push("A".concat(&suffix_neighborhood_arena, suffix_neighbor));
+					neighborhood.push("C".concat(&suffix_neighborhood_arena, suffix_neighbor));
+					neighborhood.push("G".concat(&suffix_neighborhood_arena, suffix_neighbor));
+					neighborhood.push("T".concat(&suffix_neighborhood_arena, suffix_neighbor));
 				} else {
 					// hamming distance == d. It can't be more, because the neighbors are
 					// generated up to hamming distance d. Adding the first symbol from the
 					// original pattern cannot increase the hamming distance.
-					neighborhood.push(pattern[suffix_idx - 1:1].concat(suffix_neighbor, &suffix_neighborhood_arena));
+					neighborhood.push(pattern[suffix_idx - 1:1].concat(&suffix_neighborhood_arena, suffix_neighbor,));
 				}
 			}
 		}

@@ -7,13 +7,14 @@ import std::collections;
 
 import util;
 
-fn void! main(String[] args) {
+fn int main(String[] args) {
 	if (args.len != 2) {
 		io::eprintn("Please supply path to data file");
-		return IoError.FILE_NOT_FOUND?;
+		return 1;
 	}
-	File f = file::open(args[1], "rb")!;
-	String s1 = io::treadline(&f)!;
-	String s2 = io::treadline(&f)!;
+	File f = file::open(args[1], "rb")!!;
+	String s1 = io::treadline(&f)!!;
+	String s2 = io::treadline(&f)!!;
 	io::printn(util::hamming_distance(s1, s2));
+	return 0;
 }
