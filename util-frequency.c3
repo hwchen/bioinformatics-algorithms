@@ -34,8 +34,10 @@ fn FrequencyTable frequency_table(String text, int k, Allocator alloc = allocato
 	kmer_counts.init(allocator: alloc);
 	for (int i = 0; i <= text.len - k; i += 1) {
 		// TODO get_or_update? Annoying to get twice
-		kmer_counts.@get_or_set(text[i:k], 0); // don't need to clone, keys copied into table
-		if (try int* count = kmer_counts.get_ref(text[i:k])) {
+		// Modified std so that hashmap doesn't copy keys
+		String key = text[i:k].copy(alloc);
+		kmer_counts.@get_or_set(key, 0);
+		if (try count = kmer_counts.get_ref(key)) {
 			*count += 1;
 		}
 	}
@@ -50,21 +52,20 @@ fn String[] clump_finding(
 	Allocator alloc = allocator::heap())
 {
 	if (k == 0 || genome.len == 0) return {};
-	String[] res;
+	HashMap{String, char} clumps; // a set
 	@pool(alloc) {
-		HashMap{String, char} clumps; // a set
 		clumps.tinit();
 		for (int i = 0; i <= genome.len - region_len; i += 1) {
-			@pool(alloc) {
-				FrequencyTable freq_map = frequency_table(genome[i:region_len], k, allocator::temp());
-				freq_map.@each(; String kmer, int count) {
-					if (count >= clump_threshold) {
-						// TODO can probably just use a growable array on small inputs
-						// Also, careful: hashmap copies keys! Here that means keys copied
-						// to temp allocator.
-						clumps.set(kmer, 0);
-					}
-				};
+			// TODO Could use another pool here, but there appears to be a bug with nested pools
+			FrequencyTable freq_map = frequency_table(genome[i:region_len], k, tmem());
+			freq_map.@each(; String kmer, int count) {
+				if (count >= clump_threshold) {
+					// TODO can probably just use a growable array on small inputs
+					// std hashmap modified to not copy keys, so have to copy out kmer from
+					// frequency table
+					String key = kmer.copy(alloc);
+					clumps.set(key, 0);
+				}
 			};
 		}
 		return clumps.keys(alloc);
@@ -73,7 +74,7 @@ fn String[] clump_finding(
 
 fn void test_clump_finding() @test {
     String input = "CGGACTCGACAGATGTGAAGAACGACAATGTGAAGACTCGACACGACAGAGTGAAGAGAAGAGGAAACATTGTAA";
-	assert(clump_finding(input, 5, 50, 4) == {"CGACA", "GAAGA"});
+	assert(clump_finding(input, 5, 50, 4, tmem()) == {"CGACA", "GAAGA"});
 }
 
 fn int hamming_distance(String s1, String s2) {
