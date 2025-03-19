@@ -23,7 +23,7 @@ fn int main(String[] args) {
 }
 
 fn String[] frequent_words(String text, int k, Allocator alloc= allocator::heap()) {
-	@pool(alloc) {
+	@pool() {
 		FrequencyTable freq_map = util::frequency_table(text, k, allocator::temp());
 
 		int[] counts = freq_map.tvalues();

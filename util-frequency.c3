@@ -23,19 +23,21 @@ fn String reverse_complement(String pattern, Allocator alloc = allocator::heap()
 }
 
 fn void test_reverse_complement() @test {
-	assert(reverse_complement("AAAACCCGGT") == "ACCGGGTTTT");
+	assert(reverse_complement("AAAACCCGGT", tmem()) == "ACCGGGTTTT");
 }
 
 alias FrequencyTable = HashMap{String, int};
 
 // counts of kmers in a text.
+// Lifetime of result is same as that of `text` param.
 fn FrequencyTable frequency_table(String text, int k, Allocator alloc = allocator::heap()) {
 	FrequencyTable kmer_counts;
 	kmer_counts.init(allocator: alloc);
 	for (int i = 0; i <= text.len - k; i += 1) {
 		// TODO get_or_update? Annoying to get twice
-		// Modified std so that hashmap doesn't copy keys
-		String key = text[i:k].copy(alloc);
+		// Modified std so that hashmap doesn't copy keys, but these
+		// keys lifetime is the same as `text`.
+		String key = text[i:k];
 		kmer_counts.@get_or_set(key, 0);
 		if (try count = kmer_counts.get_ref(key)) {
 			*count += 1;
@@ -44,6 +46,7 @@ fn FrequencyTable frequency_table(String text, int k, Allocator alloc = allocato
 	return kmer_counts;
 }
 
+// Lifetime of result is that of the `genome` param.
 fn String[] clump_finding(
 	String genome,
 	int k,
@@ -53,19 +56,19 @@ fn String[] clump_finding(
 {
 	if (k == 0 || genome.len == 0) return {};
 	HashMap{String, char} clumps; // a set
-	@pool(alloc) {
+	@pool() {
 		clumps.tinit();
 		for (int i = 0; i <= genome.len - region_len; i += 1) {
-			// TODO Could use another pool here, but there appears to be a bug with nested pools
-			FrequencyTable freq_map = frequency_table(genome[i:region_len], k, tmem());
-			freq_map.@each(; String kmer, int count) {
-				if (count >= clump_threshold) {
-					// TODO can probably just use a growable array on small inputs
-					// std hashmap modified to not copy keys, so have to copy out kmer from
-					// frequency table
-					String key = kmer.copy(alloc);
-					clumps.set(key, 0);
-				}
+			@pool() {
+				FrequencyTable freq_map = frequency_table(genome[i:region_len], k, tmem());
+				freq_map.@each(; String kmer, int count) {
+					if (count >= clump_threshold) {
+						// TODO can probably just use a growable array on small inputs
+						// std hashmap modified to not copy keys, lifetime of kmer is that of
+						// the `genome` param
+						clumps.set(kmer, 0);
+					}
+				};
 			};
 		}
 		return clumps.keys(alloc);
@@ -101,7 +104,7 @@ fn int[] approximate_pattern_matching(
 {
 	if (pattern.len == 0 || genome.len == 0) return {};
 	List{int} res;
-	@pool(alloc) {
+	@pool() {
 		res.tinit();
 		for (int i = 0; i <= genome.len - pattern.len; i += 1) {
 			// TODO more efficient to break early when calculating hamming distance
@@ -155,7 +158,7 @@ fn String[] _frequent_words_with_mismatches(
 	bool with_rc,
 	Allocator alloc= allocator::heap())
 {
-	@pool(alloc) {
+	@pool() {
 		if (with_rc) {
 			text = text.tconcat(reverse_complement(text, allocator::temp()));
 		}
@@ -165,7 +168,7 @@ fn String[] _frequent_words_with_mismatches(
 			String pattern = text[i:k];
 			String[] neighborhood = neighbors(pattern, d, allocator::temp());
 			foreach (neighbor : neighborhood) {
-				freq_map.@get_or_set(neighbor, 0); // don't need to clone, keys copied into table
+				freq_map.@get_or_set(neighbor, 0);
 				if (try int* count = freq_map.get_ref(neighbor)) {
 					*count += 1;
 				}
@@ -230,8 +233,10 @@ fn void test_frequent_words_with_mismatches() @test {
 		},
 	};
 	foreach (t : tests) {
-		String[] matches = frequent_words_with_mismatches(t.text, t.k, t.d);
-		test::expect_equal_slices_sorted(t.expected, matches);
+		@pool() {
+			String[] matches = frequent_words_with_mismatches(t.text, t.k, t.d, tmem());
+			test::expect_equal_slices_sorted(t.expected, matches);
+		};
 	}
 }
 fn void test_frequent_words_with_mismatches_and_rc() @test {
@@ -244,7 +249,7 @@ fn void test_frequent_words_with_mismatches_and_rc() @test {
 		},
 	};
 	foreach (t : tests) {
-		String[] matches = frequent_words_with_mismatches_and_rc(t.text, t.k, t.d);
+		String[] matches = frequent_words_with_mismatches_and_rc(t.text, t.k, t.d, tmem());
 		test::expect_equal_slices_sorted(t.expected, matches);
 	}
 }
@@ -257,11 +262,11 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 {
 	if (d == 0) return {pattern};
 	if (pattern.len == 0) return {};
-	@pool(alloc) {
+	@pool() {
 		DynamicArenaAllocator neighborhood_arena;
 		DynamicArenaAllocator suffix_neighborhood_arena;
-		neighborhood_arena.init(1024, allocator::temp());
-		suffix_neighborhood_arena.init(1024, allocator::temp());
+		neighborhood_arena.init(tmem(), 1024);
+		suffix_neighborhood_arena.init(tmem(), 1024);
 		List{String} neighborhood;
 		List{String} suffix_neighborhood;
 		neighborhood.init_with_array(&neighborhood_arena, {"A", "C", "G", "T"});
@@ -352,7 +357,7 @@ fn void test_neighbors() @test {
 		},
 	};
 	foreach (t : tests) {
-		String[] matches = neighbors(t.text, t.d);
+		String[] matches = neighbors(t.text, t.d, tmem());
 		test::expect_equal_slices_sorted(t.expected, matches);
 	}
 }

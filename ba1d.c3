@@ -23,7 +23,7 @@ fn int main(String[] args) {
 fn int[] pattern_matching(String pattern, String genome, Allocator alloc = allocator::heap()) {
 	if (pattern.len == 0 || genome.len == 0) return {};
 	List{int} res;
-	@pool(alloc) {
+	@pool() {
 		res.tinit();
 		for (int i = 0; i <= genome.len - pattern.len; i += 1) {
 			if (genome[i:pattern.len] == pattern) {
