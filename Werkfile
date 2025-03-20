@@ -1,0 +1,42 @@
+default target = "build"
+# doesn't currently work, use cli --jobs
+#default jobs = 1
+
+config profile = "debug"
+
+# Pick cflags based on the build profile
+let cflags = profile | match {
+    "debug" => ["-O0"]
+    "release" => ["-O3"]
+    "asan-address" => ["-O0", "--sanitize=address"]
+    "%" => ""
+}
+
+build "%.bin" {
+    from "%.c3"
+    from [
+        "util-frequency.c3",
+        "test.c3",
+    ]
+    run "c3c compile <in*:workspace> -o <out:out-dir>"
+}
+
+task build {
+    let bins = [
+        glob "ba*.c3" | map "{:.c3=.bin}",
+        ["approximate_pattern_count.bin"]
+    ] | flatten
+    #info "{bins*}"
+    build bins
+}
+
+build "testrun" {
+    from glob "*.c3"
+    run "c3c compile-test --suppress-run {cflags*} <in*> -o <out:out-dir>"
+}
+
+task test {
+    let test_exe = "testrun"
+    build test_exe
+    run "<test_exe>"
+}

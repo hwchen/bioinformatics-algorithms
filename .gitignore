@@ -1,4 +1,5 @@
-*
-!*.c3
-!README.md
-!justfile
+target
+perf.svg
+perf.data*
+E_coli.txt
+input.txt
