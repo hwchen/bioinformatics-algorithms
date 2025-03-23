@@ -44,7 +44,7 @@ fn String[] frequent_words(String text, int k, Allocator alloc= allocator::heap(
 }
 
 fn void test_frequent_words() @test {
-	String[] words = frequent_words("ACGTTGCATGTCGCATGATGCATGAGAGCT", 4, tmem());
+	String[] words = frequent_words("ACGTTGCATGTCGCATGATGCATGAGAGCT", 4, tmem);
 	assert(words.len == 2);
 	assert(words.contains("CATG"));
 	assert(words.contains("GCAT"));

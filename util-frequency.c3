@@ -23,7 +23,7 @@ fn String reverse_complement(String pattern, Allocator alloc = allocator::heap()
 }
 
 fn void test_reverse_complement() @test {
-	assert(reverse_complement("AAAACCCGGT", tmem()) == "ACCGGGTTTT");
+	assert(reverse_complement("AAAACCCGGT", tmem) == "ACCGGGTTTT");
 }
 
 alias FrequencyTable = HashMap{String, int};
@@ -60,7 +60,7 @@ fn String[] clump_finding(
 		clumps.tinit();
 		for (int i = 0; i <= genome.len - region_len; i += 1) {
 			@pool() {
-				FrequencyTable freq_map = frequency_table(genome[i:region_len], k, tmem());
+				FrequencyTable freq_map = frequency_table(genome[i:region_len], k, tmem);
 				freq_map.@each(; String kmer, int count) {
 					if (count >= clump_threshold) {
 						// TODO can probably just use a growable array on small inputs
@@ -77,7 +77,7 @@ fn String[] clump_finding(
 
 fn void test_clump_finding() @test {
     String input = "CGGACTCGACAGATGTGAAGAACGACAATGTGAAGACTCGACACGACAGAGTGAAGAGAAGAGGAAACATTGTAA";
-	assert(clump_finding(input, 5, 50, 4, tmem()) == {"CGACA", "GAAGA"});
+	assert(clump_finding(input, 5, 50, 4, tmem) == {"CGACA", "GAAGA"});
 }
 
 fn int hamming_distance(String s1, String s2) {
@@ -144,7 +144,7 @@ fn void test_approximate_pattern_matching() @test {
 		},
 	};
 	foreach (t : tests) {
-		int[] matches = approximate_pattern_matching(t.pattern, t.genome, t.d, tmem());
+		int[] matches = approximate_pattern_matching(t.pattern, t.genome, t.d, tmem);
 		assert(matches == t.expected, "Expected %s, found %s", t.expected, matches);
 	}
 }
@@ -234,7 +234,7 @@ fn void test_frequent_words_with_mismatches() @test {
 	};
 	foreach (t : tests) {
 		@pool() {
-			String[] matches = frequent_words_with_mismatches(t.text, t.k, t.d, tmem());
+			String[] matches = frequent_words_with_mismatches(t.text, t.k, t.d, tmem);
 			test::expect_equal_slices_sorted(t.expected, matches);
 		};
 	}
@@ -249,7 +249,7 @@ fn void test_frequent_words_with_mismatches_and_rc() @test {
 		},
 	};
 	foreach (t : tests) {
-		String[] matches = frequent_words_with_mismatches_and_rc(t.text, t.k, t.d, tmem());
+		String[] matches = frequent_words_with_mismatches_and_rc(t.text, t.k, t.d, tmem);
 		test::expect_equal_slices_sorted(t.expected, matches);
 	}
 }
@@ -265,8 +265,8 @@ fn String[] neighbors(String pattern, int d, Allocator alloc = allocator::heap()
 	@pool() {
 		DynamicArenaAllocator neighborhood_arena;
 		DynamicArenaAllocator suffix_neighborhood_arena;
-		neighborhood_arena.init(tmem(), 1024);
-		suffix_neighborhood_arena.init(tmem(), 1024);
+		neighborhood_arena.init(tmem, 1024);
+		suffix_neighborhood_arena.init(tmem, 1024);
 		List{String} neighborhood;
 		List{String} suffix_neighborhood;
 		neighborhood.init_with_array(&neighborhood_arena, {"A", "C", "G", "T"});
@@ -357,7 +357,7 @@ fn void test_neighbors() @test {
 		},
 	};
 	foreach (t : tests) {
-		String[] matches = neighbors(t.text, t.d, tmem());
+		String[] matches = neighbors(t.text, t.d, tmem);
 		test::expect_equal_slices_sorted(t.expected, matches);
 	}
 }

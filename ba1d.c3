@@ -35,7 +35,7 @@ fn int[] pattern_matching(String pattern, String genome, Allocator alloc = alloc
 }
 
 fn void test_pattern_matching() @test {
-	assert(pattern_matching("ATAT", "GATATATGCATATACTT", tmem()) == {1, 3, 9});
+	assert(pattern_matching("ATAT", "GATATATGCATATACTT", tmem) == {1, 3, 9});
 }
 
 

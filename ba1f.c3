@@ -50,5 +50,5 @@ fn ulong[] minimum_skew_idxs(String genome, Allocator alloc = allocator::heap())
 }
 
 fn void test_minimum_skew_idxs() @test {
-	assert(minimum_skew_idxs("TAAAGACTGCCGAGAGGCCAACACGAGTGCTAGAACGAGGGGCGTAAACGCGGGTCCGAT", tmem()) == {11, 24});
+	assert(minimum_skew_idxs("TAAAGACTGCCGAGAGGCCAACACGAGTGCTAGAACGAGGGGCGTAAACGCGGGTCCGAT", tmem) == {11, 24});
 }
