@@ -2,7 +2,7 @@ build:
     werk build --jobs=1 -Dprofile=release
 
 run problem *args="":
-    werk build --jobs=1 -Dprofile=release && time -pq ./target/{{problem}}.bin {{args}}
+    werk build --jobs=1 -Dprofile=release && time -pq ./target/bin/{{problem}} {{args}}
 
 bench problem *args="":
     just build {{problem}} -O5 && \

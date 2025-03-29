@@ -12,7 +12,7 @@ let cflags = profile | match {
     "%" => ""
 }
 
-build "%.bin" {
+build "bin/%" {
     from "%.c3"
     from [
         "util-frequency.c3",
@@ -23,8 +23,8 @@ build "%.bin" {
 
 task build {
     let bins = [
-        glob "ba*.c3" | map "{:.c3=.bin}",
-        ["approximate_pattern_count.bin"]
+        glob "ba*.c3" | map "bin{:s/.c3//}",
+        ["bin/approximate_pattern_count"]
     ] | flatten
     #info "{bins*}"
     build bins
