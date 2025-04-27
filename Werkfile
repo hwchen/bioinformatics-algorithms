@@ -1,6 +1,5 @@
 default target = "build"
-# doesn't currently work, use cli --jobs
-#default jobs = 1
+default jobs = 1
 
 config profile = "debug"
 
